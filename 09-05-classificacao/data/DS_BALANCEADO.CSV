@@ -1,0 +1,13 @@
+Tempo_Conta,Uso_Semanal,Satisfacao,Tempo_Resposta_Suporte,Cancelou
+Novo,Baixo,Baixa,48,Sim
+Novo,Medio,Media,24,Nao
+Novo,Alto,Alta,12,Nao
+Antigo,Baixo,Baixa,72,Sim
+Antigo,Medio,Media,24,Nao
+Antigo,Alto,Alta,8,Nao
+Novo,Baixo,Media,36,Sim
+Antigo,Medio,Alta,12,Nao
+Novo,Alto,Media,20,Nao
+Antigo,Baixo,Baixa,60,Sim
+Novo,Medio,Baixa,40,Sim
+Antigo,Alto,Alta,6,Nao
