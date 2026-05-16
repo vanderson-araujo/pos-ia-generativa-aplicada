@@ -14,6 +14,8 @@ O objetivo é organizar notebooks, scripts e conjuntos de dados usados em cada e
 
 Cada atividade inclui seu próprio README ou instruções internas para guiar a execução do notebook e as dependências específicas.
 
+Se estiver utilizando o VS Code, é necessário instalar a extensão `Jupyter` para abrir e executar notebooks diretamente na IDE.
+
 ## Finalidade
 
 Este repositório é uma coleção de estudos para apoiar o aprendizado em IA Generativa Aplicada e documentar as atividades realizadas durante a pós-graduação.
