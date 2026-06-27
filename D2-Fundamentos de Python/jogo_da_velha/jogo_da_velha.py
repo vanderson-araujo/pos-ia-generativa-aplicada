@@ -1,232 +1,210 @@
+import subprocess
 import os
+from dataclasses import dataclass
 
 class JogadaInvalidaException(Exception):
     pass
 
-# Salva os jogadores em dicionários
-jogador_atual_x = {"nome": "", "marcador": "X"}
-jogador_atual_o = {"nome": "", "marcador": "O"}
+@dataclass
+class Jogador:
+    nome: str
+    marcador: str
 
-# Salva o tabuleiro do jogo da velha como uma lista de listas
-tabuleiro = [[" ", " ", " "], [" ", " ", " "], [" ", " ", " "]]
+@dataclass
+class Posicao:
+    linha: int
+    coluna: int
+
+@dataclass
+class ResultadoVitoria:
+    venceu: bool
+    vencedor: Jogador | None
+    combinacao: list[Posicao] | None
+
+
+jogador_x = Jogador("", "X")
+jogador_o = Jogador("", "O")
+
+tabuleiro = [
+    [" ", " ", " "],
+    [" ", " ", " "],
+    [" ", " ", " "]
+]
 
 def cadastrar_jogadores():
-    """
-    Guarda a entrada dos jogadores
-    """
-    jogador_atual_x["nome"] = input("Digite o nome do jogador X: ").capitalize()
-    jogador_atual_o["nome"] = input("Digite o nome do jogador O: ").capitalize()
+    while True:
+        nome_x = input("Digite o nome do jogador X: ").strip().capitalize()
+        nome_o = input("Digite o nome do jogador O: ").strip().capitalize()
 
-def verifica_vitoria():
-    """
-    Verifica se partida possui um ganhador de acordo com as combinações possível
+        if nome_x == "" or nome_o == "":
+            limpar_console()
+            print("Obs: O nome do jogador não pode ser vazio.")
+            continue
 
-    Returns:
-        Tuple: 1: Se partida finalizada, 2: Jogador Vencedor, 3: Combinação completa
-    """
+        if nome_x.casefold() == nome_o.casefold():
+            limpar_console()
+            print("Obs: O nome dos jogadores não pode ser igual.")
+            continue
+
+        jogador_x.nome = nome_x
+        jogador_o.nome = nome_o
+        break
+
+
+def buscar_jogador_por_marcador(marcador: str) -> Jogador:
+    return jogador_x if jogador_x.marcador == marcador else jogador_o
+
+def verifica_vitoria() -> ResultadoVitoria:
     combinacoes = [
-        [(0, 0), (0, 1), (0, 2)], # primeira linha horizontal
-        [(1, 0), (1, 1), (1, 2)], # segunda linha horizontal
-        [(2, 0), (2, 1), (2, 2)], # terceira linha horizontal
-        [(0, 0), (1, 0), (2, 0)], # primeira coluna vertical
-        [(0, 1), (1, 1), (2, 1)], # segunda coluna vertical
-        [(0, 2), (1, 2), (2, 2)], # terceira coluna vertical
-        [(0, 0), (1, 1), (2, 2)], # diagonal principal
-        [(0, 2), (1, 1), (2, 0)]  # diagonal secundária
+        [Posicao(0, 0), Posicao(0, 1), Posicao(0, 2)],
+        [Posicao(1, 0), Posicao(1, 1), Posicao(1, 2)],
+        [Posicao(2, 0), Posicao(2, 1), Posicao(2, 2)],
+
+        [Posicao(0, 0), Posicao(1, 0), Posicao(2, 0)],
+        [Posicao(0, 1), Posicao(1, 1), Posicao(2, 1)],
+        [Posicao(0, 2), Posicao(1, 2), Posicao(2, 2)],
+
+        [Posicao(0, 0), Posicao(1, 1), Posicao(2, 2)],
+        [Posicao(0, 2), Posicao(1, 1), Posicao(2, 0)]
     ]
 
     for combinacao in combinacoes:
         a, b, c = combinacao
 
-        valor_a = tabuleiro[a[0]][a[1]]
-        valor_b = tabuleiro[b[0]][b[1]]
-        valor_c = tabuleiro[c[0]][c[1]]
+        valor_a = tabuleiro[a.linha][a.coluna]
+        valor_b = tabuleiro[b.linha][b.coluna]
+        valor_c = tabuleiro[c.linha][c.coluna]
 
         if valor_a != " " and valor_a == valor_b == valor_c:
-            return True, buscar_jogador_por_marcador(valor_a), combinacao
-    
-    return False, None, None
+            return ResultadoVitoria(
+                True,
+                buscar_jogador_por_marcador(valor_a),
+                combinacao
+            )
 
-def get_valor_visualizacao(valor, linha, coluna, dados_rodada: tuple[bool, dict | None, list[tuple[int, int]] | None]):
-    """
-    Define o valor que será  populado na interface
-    Args:
-        valor: Valor X ou 0
-        linha: Linha da jogada
-        colluna: Coluna da jogada
-        dados_rodada: Informações do status da partida
-    """
-    is_jogo_finalizado = dados_rodada[0]
-    combinacao = dados_rodada[2]
+    return ResultadoVitoria(False, None, None)
 
-    if is_jogo_finalizado and ((combinacao[0][0] == linha and combinacao[0][1] == coluna) or (combinacao[1][0] == linha and combinacao[1][1] == coluna) or (combinacao[2][0] == linha and combinacao[2][1] == coluna)):
-        return f"[{valor}]"
-    elif is_jogo_finalizado:
+
+def posicao_esta_na_combinacao(posicao: Posicao, combinacao: list[Posicao]) -> bool:
+    return posicao in combinacao
+
+
+def get_valor_visualizacao(
+    valor: str,
+    posicao: Posicao,
+    resultado: ResultadoVitoria
+) -> str:
+
+    if resultado.venceu and resultado.combinacao is not None:
+        if posicao_esta_na_combinacao(posicao, resultado.combinacao):
+            return f"[{valor}]"
+
         return f" {valor} " if valor != " " else "   "
-    else:
-        return f" {valor} " if valor != " " else f"{linha}-{coluna}"
+
+    return f" {valor} " if valor != " " else f"{posicao.linha}-{posicao.coluna}"
+
 
 def mostrar_tabuleiro():
-    """
-    Função para mostrar o tabuleiro do jogo no console
-    """
-    dados_rodada = verifica_vitoria()
+    resultado = verifica_vitoria()
 
-    for index, linha in enumerate(tabuleiro):
+    for indice_linha, linha in enumerate(tabuleiro):
         print(
-            get_valor_visualizacao(linha[0], index, 0, dados_rodada), 
-            get_valor_visualizacao(linha[1], index, 1, dados_rodada), 
-            get_valor_visualizacao(linha[2], index, 2, dados_rodada), sep=" | ")
+            get_valor_visualizacao(linha[0], Posicao(indice_linha, 0), resultado),
+            get_valor_visualizacao(linha[1], Posicao(indice_linha, 1), resultado),
+            get_valor_visualizacao(linha[2], Posicao(indice_linha, 2), resultado),
+            sep=" | "
+        )
 
-        if (index != len(tabuleiro) - 1):
+        if indice_linha != len(tabuleiro) - 1:
             print("-" * 15)
+
     print()
 
-def validar_jogada(jogada: tuple[int, int]):
-    """
-    Valida se informações de entrada são valores válidos
-    Args:
-        jogada: Tuple (L, C), ex: (0, 0)
-    Raises:
-        JogadaInvalidaException: Caso informações de entrada seja inválida
-    """
-    
-    if len(jogada) != 2:
-        raise JogadaInvalidaException("Entrada errada, informe L-C, ex: 1-1")
 
-    linha, coluna = jogada
-    if linha not in range(3) or coluna not in range(3):
-        raise JogadaInvalidaException("Jogada inválida! linha e coluna devem estar entre 0 e 2.")
-    
-    if (tabuleiro[linha][coluna] != " "):
-        raise JogadaInvalidaException(f"Jogada inválida! A posição {jogada} já está ocupada.")
+def validar_jogada(posicao: Posicao):
+    if posicao.linha not in range(3) or posicao.coluna not in range(3):
+        raise JogadaInvalidaException(
+            "Jogada inválida! linha e coluna devem estar entre 0 e 2."
+        )
 
-def jogar(jogador_atual, jogada):
-    """
-    Controla as jogadas dos jogadores
-    Args:
-        jogador_atual: Jogador que fez a jogada
-        jogada: Jogada atual
-    """
-    validar_jogada(jogada)
-    linha, coluna = jogada
-    tabuleiro[linha][coluna] = jogador_atual["marcador"]
+    if tabuleiro[posicao.linha][posicao.coluna] != " ":
+        raise JogadaInvalidaException(
+            f"Jogada inválida! A posição {posicao.linha}-{posicao.coluna} já está ocupada."
+        )
 
-def buscar_jogador_por_marcador(marcador):
-    """
-    Busca pelo jogador de acordo com o marcador utilizado
+def jogar(jogador: Jogador, posicao: Posicao):
+    validar_jogada(posicao)
+    tabuleiro[posicao.linha][posicao.coluna] = jogador.marcador
 
-    Args:
-        marcador: valor X ou 0 de acordo com o usuário
-    """
-    if jogador_atual_x["marcador"] == marcador:
-        return jogador_atual_x
-    else:
-        return jogador_atual_o
-
-def is_continua_rodada():
-    """
-    Verifica se a rodada continua ou finaliza
-
-    Returns:
-        Se partida tem continuidade
-    """
+def continua_rodada() -> bool:
     for linha in tabuleiro:
-        if linha[0] == " " or linha[1] == " " or linha[2] == " ":
+        if " " in linha:
             return True
+
     return False
 
 def limpar_console():
-    """
-    Faz a limpeza do console
-    """
-    os.system("cls" if os.name == "nt" else "clear")
+    comando = "cls" if os.name == "nt" else "clear"
+    subprocess.run(comando, shell=True)
 
-def verifica_jogador_atual(ultimo_jogador):
-    """
-    Verifica qual é o jogador que irá jogar
-    
-    Returns:
-        Jogador que irá fazer a jogada
-    """
-    if ultimo_jogador == jogador_atual_x:
-        return jogador_atual_o
-    else:
-        return jogador_atual_x
-    
-def tratar_erro_jogada(jogador, mensagem: str):
-    """
-    Processo executado quando ocorrer erro na entrada de dados
-    """
-    limpar_console()
-    mostrar_tabuleiro()
-    print(f"Obs: {mensagem}")
-    executa_jogada(jogador)
+def verifica_jogador_atual(ultimo_jogador: Jogador | None) -> Jogador:
+    if ultimo_jogador == jogador_x:
+        return jogador_o
 
-def solicitar_entrada_jogador(jogador):
-    """
-    Solicita a entrada para o jogador da vez
+    return jogador_x
 
-    Args:
-        jogador: Jogador da vez
-
-    Returns:
-        Tuple com as informações da jogada linha e coluna, ex: (0, 0)
-    """
+def solicitar_entrada_jogador(jogador: Jogador) -> Posicao:
     while True:
         try:
-            print(f"Jogador {jogador['nome']} ({jogador['marcador']})")
+            print(f"Jogador {jogador.nome} ({jogador.marcador})")
             print("Informe a linha e a coluna da jogada (ex: 0-1):", end=" ")
-            return tuple(map(int, input().split("-")))
+
+            linha, coluna = map(int, input().split("-"))
+
+            return Posicao(linha, coluna)
+
         except ValueError:
             limpar_console()
             mostrar_tabuleiro()
             print("Obs: Jogada inválida! Entrada deve ser dois inteiros, ex: 1-2")
 
-def executa_jogada(jogador):
-    """
-    Responsável por executar a rodada
-
-    Args:
-        jogador: Jogador da vez
-    """
+def executa_jogada(jogador: Jogador):
     while True:
         try:
-            jogada = solicitar_entrada_jogador(jogador)
-            jogar(jogador, jogada)
+            posicao = solicitar_entrada_jogador(jogador)
+            jogar(jogador, posicao)
             break
+
         except JogadaInvalidaException as e:
             limpar_console()
             mostrar_tabuleiro()
             print(f"Obs: {str(e)}")
 
 def iniciar_rodada():
-    """
-    Inicia a rodada
-    """
-    
     ultimo_jogador = None
 
-    while is_continua_rodada():
+    while continua_rodada():
         limpar_console()
         mostrar_tabuleiro()
+
         ultimo_jogador = verifica_jogador_atual(ultimo_jogador)
-        
+
         executa_jogada(ultimo_jogador)
 
-        is_continua, vencedor, combinacao = verifica_vitoria()
-        if is_continua:
+        resultado = verifica_vitoria()
+
+        if resultado.venceu:
             limpar_console()
             mostrar_tabuleiro()
-            print(f"Parabéns {vencedor['nome']}! Você venceu!")
+            print(f"Parabéns {resultado.vencedor.nome}! Você venceu!")
             break
 
-        if (not is_continua_rodada()):
-            break
+    else:
+        limpar_console()
+        mostrar_tabuleiro()
+        print("Deu velha! Ninguém venceu.")
 
-### main ###
+# main
 limpar_console()
 cadastrar_jogadores()
 iniciar_rodada()
-
-
