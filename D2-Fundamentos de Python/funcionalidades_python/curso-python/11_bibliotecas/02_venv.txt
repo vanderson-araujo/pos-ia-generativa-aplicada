@@ -1,0 +1,18 @@
+venv cria um ambiente virtual, ou seja, uma pasta isolada com as dependencias do projeto.
+
+Criar:
+
+python -m venv .venv
+
+Ativar no Windows PowerShell:
+
+.venv\Scripts\Activate.ps1
+
+Ativar no Linux/macOS:
+
+source .venv/bin/activate
+
+Desativar:
+
+deactivate
+

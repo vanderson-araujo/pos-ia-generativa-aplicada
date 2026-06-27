@@ -1,0 +1,12 @@
+pip e o instalador de pacotes do Python.
+
+Exemplos:
+
+pip install requests
+pip install pandas
+pip install pillow
+
+Para ver pacotes instalados:
+
+pip list
+

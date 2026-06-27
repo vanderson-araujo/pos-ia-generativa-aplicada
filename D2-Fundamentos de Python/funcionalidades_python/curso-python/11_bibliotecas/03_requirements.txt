@@ -1,0 +1,12 @@
+Um arquivo requirements.txt lista as bibliotecas do projeto.
+
+Exemplo de conteudo:
+
+requests
+pandas
+pillow
+
+Instalar tudo:
+
+pip install -r requirements.txt
+
